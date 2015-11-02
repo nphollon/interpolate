@@ -6,22 +6,25 @@
 module Main where
 
 import Text
+import Task exposing (Task)
 
-import ElmTest.Test exposing (Test, suite)
-import ElmTest.Runner.Element as GraphicsRunner
-import ElmTest.Runner.Console as ConsoleRunner
+import ElmTest.Test exposing (Test, suite, test)
+import ElmTest.Assertion exposing (assertEqual)
+import ElmTest.Runner.Console exposing (runDisplay)
 
-import IO.Runner
+import Console
+
+import Interpolate.Cubic as Cubic
 
 
 allTests : Test
 allTests =
-  suite "Test Suite" []
+  suite "Test Suite"
+          [ test "First" (assertEqual 1 1)
+          ]
 
-        
-port requests : Signal IO.Runner.Request
-port requests =
-  IO.Runner.run responses (ConsoleRunner.runDisplay allTests)
+
+port runner : Signal (Task a ())
+port runner =
+  Console.run (runDisplay allTests)
     
-
-port responses : Signal IO.Runner.Response
