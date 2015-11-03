@@ -1,5 +1,5 @@
 {
-    "version": "1.0.1",
+    "version": "2.0.0",
     "summary": "Cubic spline interpolation",
     "repository": "https://github.com/nphollon/interpolate.git",
     "license": "MIT",
