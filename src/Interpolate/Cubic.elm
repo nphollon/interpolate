@@ -1,24 +1,48 @@
 module Interpolate.Cubic (Spline, LocalCurve, withRange
                          , valueAt, slopeAt, concavityAt, curveAt) where
 
+{-| This library interpolates cubic splines for one-dimensional sets of data.
+
+It computes "natural splines", which means the second derivative at the endpoints
+is set to zero.
+
+For more information on the mathematics used, check out
+[this paper.](http://web.archive.org/web/20090408054627/http://online.redwoods.cc.ca.us/instruct/darnold/laproj/Fall98/SkyMeg/Proj.PDF)
+
+# Creating splines
+@docs withRange, Spline
+
+# Interpolating
+@docs valueAt, slopeAt, concavityAt, curveAt, LocalCurve
+-}
+
 import Array exposing (Array)
 
 
+{-| Given `x1` and a spline `f(x)`, return `f(x1)`
+-}
 valueAt : Float -> Spline -> Float
 valueAt =
   evaluate cubic
 
-      
+           
+{-| Return the first derivative of the curve at the given point
+-}
 slopeAt : Float -> Spline -> Float
 slopeAt =
   evaluate firstDerivative
 
-           
+
+{-| Return the second derivative of the curve at the given point
+-}
 concavityAt : Float -> Spline -> Float
 concavityAt =
   evaluate secondDerivative
 
 
+{-| Return a record containing the value, slope, and concavity of the curve
+at the given point
+-}
 curveAt : Float -> Spline -> LocalCurve
 curveAt =
   let
@@ -66,14 +90,32 @@ evaluate f x (Spline spline) =
   in
     f offset coeff
 
-      
+
+{-|-}
 type alias LocalCurve =
   { value : Float
   , slope : Float
   , concavity : Float
   }
 
-                      
+
+{-| Compute a spline, given the minimum and maximum values of `x` and a
+list of data for `f(x)`. The data should be evenly spaced and in order of
+increasing `x`.
+
+For example, if we have the data
+
+    f(2) = 1
+    f(3) = 5.2
+    f(4) = 3.2
+    f(5) = 0.8
+
+Then we would generate a spline by calling
+
+    fSpline = withRange 2 6 [ 1, 5.2, 3.2, 0.8 ]
+
+Returns `Nothing` if the list of data has less than two items.
+-}
 withRange : Float -> Float -> List Float -> Maybe Spline
 withRange start end heights =
   let
@@ -146,6 +188,7 @@ scanr f init =
   List.reverse >> List.scanl f init >> List.reverse
                    
 
+{-|-}
 type Spline =
   Spline
     { coefficients : Array Coefficients
@@ -165,12 +208,6 @@ type alias Coefficients =
 {- To implement:
 
 withDelta : Float -> Float -> List Float -> Spline
-
-slopeAt : Float -> Spline -> Float
-
-concavityAt : Float -> Spline -> Float
-
-curveAt : Float -> Spline -> { value : Float, slope : Float, concavity : Float }
 
 type Boundary = Natural | Parabolic | Cubic | Periodic | Clamped Float Float
 -}
