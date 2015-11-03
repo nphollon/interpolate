@@ -5,7 +5,6 @@
 
 module Main where
 
-import Debug
 import Text
 import Task exposing (Task)
 
@@ -20,10 +19,34 @@ import Interpolate.Cubic as Cubic
 allTests : Test
 allTests =
   suite "Cubic spline interpolation"
-          [ testLinear
+          [ testDegenerate
+          , testLinear
           , testCubic
           ]
 
+
+testDegenerate : Test
+testDegenerate =
+  let
+    emptySpline =
+      Cubic.withRange 2 10 []
+
+    flatSpline =
+      Cubic.withRange 1 10 [ 5 ]
+  in
+    suite "not enough data"
+            [ testCurve "empty data set yields y = 0" 1 emptySpline
+                          { value = 0, slope = 0, concavity = 0 }
+                          
+            , testCurve "one point yields y = x0 above x0" 2 flatSpline
+                          { value = 5, slope = 0, concavity = 0 }
+
+            , testCurve "one point yields y = x0 at x0" 1 flatSpline
+                          { value = 5, slope = 0, concavity = 0 }
+
+            , testCurve "one point yields y = x0 below x0" 0 flatSpline
+                          { value = 5, slope = 0, concavity = 0 }
+            ]
 
 -- y = 1/2 x^3 - 3/2 x^2 + 1
 -- for x < 1, f(x) = y(1 - x)
@@ -75,18 +98,14 @@ testLinear =
                          
     
 
-testCurve : String -> Float -> Maybe Cubic.Spline -> Cubic.LocalCurve -> Test
-testCurve name x mSpline expected =
-  case mSpline of
-    Just spline ->
-      suite name
-              [ test "value" (assertEqual expected.value (Cubic.valueAt x spline))
-              , test "slope" (assertEqual expected.slope (Cubic.slopeAt x spline))
-              , test "concavity" (assertEqual expected.concavity (Cubic.concavityAt x spline))
-              , test "local curve" (assertEqual expected (Cubic.curveAt x spline))
-              ]
-    Nothing ->
-      test "Bad Data!" (assertEqual 0 1)
+testCurve : String -> Float -> Cubic.Spline -> Cubic.LocalCurve -> Test
+testCurve name x spline expected =
+  suite name
+          [ test "value" (assertEqual expected.value (Cubic.valueAt x spline))
+          , test "slope" (assertEqual expected.slope (Cubic.slopeAt x spline))
+          , test "concavity" (assertEqual expected.concavity (Cubic.concavityAt x spline))
+          , test "local curve" (assertEqual expected (Cubic.curveAt x spline))
+          ]
       
 
 port runner : Signal (Task a ())

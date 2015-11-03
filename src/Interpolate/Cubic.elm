@@ -100,11 +100,10 @@ type alias LocalCurve =
 
 
 {-| Compute a spline, given the minimum and maximum values of `x` and a
-list of data for `f(x)`. Returns `Nothing` if the list of data has less
-than two items.
+list of data for `f(x)`. The data should be evenly spaced and in order of
+increasing `x`. 
 
-The data should be evenly spaced and in order of
-increasing `x`. For example, if we have the data
+For example, if we have the data
 
     f(2) = 1
     f(3) = 5.2
@@ -114,8 +113,12 @@ increasing `x`. For example, if we have the data
 Then we would generate a spline by calling
 
     fSpline = withRange 2 6 [ 1, 5.2, 3.2, 0.8 ]
+
+If there is only one data point, then the spline will be a horizontal line
+passing through that point. If the data is empty, the spline will be zero
+everywhere.
 -}
-withRange : Float -> Float -> List Float -> Maybe Spline
+withRange : Float -> Float -> List Float -> Spline
 withRange start end heights =
   let
     n =
@@ -124,15 +127,27 @@ withRange start end heights =
     dx =
       (end - start) / (n - 1)
   in
-    if | n > 1 ->
+    if | 1 < n ->
          { coefficients = findCoefficients dx heights
          , start = start
          , dx = dx
-         } |> Spline |> Just
-    
-       | otherwise ->
-         Nothing
+         } |> Spline
 
+       | otherwise ->
+         { coefficients = degenerateCoefficients heights
+         , start = 0
+         , dx = 0
+         } |> Spline
+
+
+degenerateCoefficients : List Float -> Array Coefficients
+degenerateCoefficients heights =
+  { a = 0
+  , b = 0
+  , c = 0
+  , d = List.head heights |> Maybe.withDefault 0
+  } |> Array.repeat 1
+  
 
 findCoefficients : Float -> List Float -> Array Coefficients
 findCoefficients dx heights =
