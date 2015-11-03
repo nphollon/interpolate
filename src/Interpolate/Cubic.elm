@@ -100,10 +100,11 @@ type alias LocalCurve =
 
 
 {-| Compute a spline, given the minimum and maximum values of `x` and a
-list of data for `f(x)`. The data should be evenly spaced and in order of
-increasing `x`.
+list of data for `f(x)`. Returns `Nothing` if the list of data has less
+than two items.
 
-For example, if we have the data
+The data should be evenly spaced and in order of
+increasing `x`. For example, if we have the data
 
     f(2) = 1
     f(3) = 5.2
@@ -113,8 +114,6 @@ For example, if we have the data
 Then we would generate a spline by calling
 
     fSpline = withRange 2 6 [ 1, 5.2, 3.2, 0.8 ]
-
-Returns `Nothing` if the list of data has less than two items.
 -}
 withRange : Float -> Float -> List Float -> Maybe Spline
 withRange start end heights =
