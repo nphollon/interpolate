@@ -9,20 +9,26 @@ import Text
 import Task exposing (Task)
 
 import ElmTest.Test exposing (Test, suite, test)
-import ElmTest.Assertion exposing (assertEqual)
+import ElmTest.Assertion exposing (assertEqual, assertNotEqual)
 import ElmTest.Runner.Console exposing (runDisplay)
 
 import Console
 
 import Interpolate.Cubic as Cubic
+import Interpolate.Bicubic as Bicubic
 
 allTests : Test
 allTests =
   suite "Cubic spline interpolation"
-          [ testDegenerate
-          , testLinear
-          , testCubic
-          ]
+        [ suite "One-dimensional"
+                  [ testDegenerate
+                  , testLinear
+                  , testCubic
+                  ]
+        , suite "Two-dimensional"
+                  [ testDataFactory
+                  ]
+        ]
 
 
 testDegenerate : Test
@@ -96,7 +102,6 @@ testLinear =
             , testPoints "data at -1 and 1" (Cubic.withRange -1 1 [0, 2])
             ]
                          
-    
 
 testCurve : String -> Float -> Cubic.Spline -> Cubic.LocalCurve -> Test
 testCurve name x spline expected =
@@ -107,6 +112,32 @@ testCurve name x spline expected =
           , test "local curve" (assertEqual expected (Cubic.curveAt x spline))
           ]
       
+
+testDataFactory : Test
+testDataFactory =
+  let
+    assertBad =
+      Bicubic.data >> assertEqual Nothing
+
+    assertGood =
+      Bicubic.data >> assertNotEqual Nothing
+  in
+    suite "building two-dimensional data sets"
+            [ test "empty list returns Nothing"
+                     (assertBad [])
+                     
+            , test "list of empty lists returns Nothing"
+                     (assertBad [[]])
+                     
+            , test "sublists of different lengths returns Nothing"
+                     (assertBad [[1], [2, 3]])
+                     
+            , test "singleton list returns something"
+                     (assertGood [[1]])
+                     
+            , test "sublists of same length returns something"
+                     (assertGood [[1], [2]])
+            ]
 
 port runner : Signal (Task a ())
 port runner =
