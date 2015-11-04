@@ -27,6 +27,7 @@ allTests =
                   ]
         , suite "Two-dimensional"
                   [ testDataFactory
+                  , testSurface
                   ]
         ]
 
@@ -117,10 +118,10 @@ testDataFactory : Test
 testDataFactory =
   let
     assertBad =
-      Bicubic.data >> assertEqual Nothing
+      Bicubic.rows >> assertEqual Nothing
 
     assertGood =
-      Bicubic.data >> assertNotEqual Nothing
+      Bicubic.rows >> assertNotEqual Nothing
   in
     suite "building two-dimensional data sets"
             [ test "empty list returns Nothing"
@@ -139,6 +140,42 @@ testDataFactory =
                      (assertGood [[1], [2]])
             ]
 
+
+testSurface : Test
+testSurface =
+  let
+    data =
+      [ [-1, -5]
+      , [5, 25]
+      ]
+
+    spline =
+      Bicubic.rows data
+        |> Maybe.withDefault Bicubic.emptyData
+        |> Bicubic.withRange {x=0,y=0} {x=2,y=2}
+
+    assertValueAt point expected =
+      assertEqual expected (Bicubic.valueAt point spline)
+  in
+    suite "z = 6xy + 3y - 2x - 1"
+            [ test "at (0,0)"
+                     (assertValueAt {x=0,y=0} -1)
+            , test "at (1,0)"
+                     (assertValueAt {x=1,y=0} -3)
+            , test "at (2,0)"
+                     (assertValueAt {x=2,y=0} -5)
+            , test "at (0,1)"
+                     (assertValueAt {x=0,y=1} 2)
+            , test "at (0,2)"
+                     (assertValueAt {x=0,y=2} 5)
+            , test "at (1,1)"
+                     (assertValueAt {x=1,y=1} 6)
+            , test "at (2,2)"
+                     (assertValueAt {x=2,y=2} 25)
+            ]
+      
+
+             
 port runner : Signal (Task a ())
 port runner =
   Console.run (runDisplay allTests)
