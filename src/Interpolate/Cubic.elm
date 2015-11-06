@@ -217,11 +217,3 @@ type alias Coefficients =
   , c : Float
   , d : Float
   }
-            
-
-{- To implement:
-
-withDelta : Float -> Float -> List Float -> Spline
-
-type Boundary = Natural | Parabolic | Cubic | Periodic | Clamped Float Float
--}
