@@ -16,6 +16,7 @@ import Console
 
 import Interpolate.Cubic as Cubic
 import Interpolate.Bicubic as Bicubic
+import Matrix exposing (Matrix)
 
 allTests : Test
 allTests =
@@ -25,6 +26,7 @@ allTests =
                   , testLinear
                   , testCubic
                   ]
+        , testMatrix
         , suite "Two-dimensional"
                   [ testDataFactory
                   , testSurface
@@ -183,7 +185,58 @@ testSurface =
             ]
       
 
-  
+testMatrix : Test
+testMatrix =
+  let
+    varied =
+      Matrix.fromRows [[1, 2], [3, 4]] |> Maybe.withDefault uniform
+
+    uniform =
+      Matrix.repeat 3 4 8
+  in
+    suite "Matrix utilities"
+            [ test "rows slices matrix horizontally"
+                     <| assertEqual
+                          [[1, 2], [3, 4]]
+                          (Matrix.rows varied)
+                          
+            , test "fromColumns is transpose of fromRows"
+                     <| assertEqual
+                          (Just [[1,3],[2,4]])
+                          (Matrix.fromColumns [[1,2],[3,4]]
+                             |> Maybe.map Matrix.rows)
+            , test "columns slices matrix vertically"
+                     <| assertEqual
+                          [[1, 3], [2, 4]]
+                          (Matrix.columns varied)                        
+            , test "repeat builds a uniform m x n matrix"
+                     <| assertEqual
+                          [[8,8,8],[8,8,8],[8,8,8],[8,8,8]]
+                          (uniform |> Matrix.rows)
+            , test "width is width"
+                     <| assertEqual 3
+                          (uniform |> Matrix.width)
+            , test "height is height"
+                     <| assertEqual 4
+                          (uniform |> Matrix.height)
+            , test "transpose reverse rows and columns"
+                     <| assertEqual
+                          [[1, 3], [2, 4]]
+                          (Matrix.transpose varied |> Matrix.rows)
+            , test "get accesses an element"
+                     <| assertEqual
+                          (Just 3)
+                          (Matrix.get 0 1 varied)
+            , test "set mutates an element"
+                     <| assertEqual
+                          [[1, 7], [3, 4]]
+                          (Matrix.set 1 0 7 varied |> Matrix.rows)
+            , test "map mutates all elements"
+                     <| assertEqual
+                          [[2, 4], [6, 8]]
+                          (Matrix.map ((*) 2) varied |> Matrix.rows)
+            ]
+             
 port runner : Signal (Task a ())
 port runner =
   Console.run (runDisplay allTests)
