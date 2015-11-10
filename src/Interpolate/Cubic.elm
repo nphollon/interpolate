@@ -10,7 +10,7 @@ For more information on the mathematics used, check out
 [this paper.](http://web.archive.org/web/20090408054627/http://online.redwoods.cc.ca.us/instruct/darnold/laproj/Fall98/SkyMeg/Proj.PDF)
 
 # Creating splines
-@docs withRange, Spline
+@docs withRange, withDelta, Spline
 
 # Interpolating
 @docs valueAt, slopeAt, concavityAt, curveAt, LocalCurve
