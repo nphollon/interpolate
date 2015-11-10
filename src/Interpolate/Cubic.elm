@@ -1,4 +1,4 @@
-module Interpolate.Cubic (Spline, LocalCurve, withRange
+module Interpolate.Cubic (Spline, LocalCurve, withRange, withDelta
                          , valueAt, slopeAt, concavityAt, curveAt) where
 
 {-| This library interpolates cubic splines for one-dimensional sets of data.
@@ -128,16 +128,27 @@ withRange start end heights =
       (end - start) / (n - 1)
   in
     if | 1 < n ->
-         { coefficients = findCoefficients dx heights
-         , start = start
-         , dx = dx
-         } |> Spline
+         withDelta start dx heights
 
        | otherwise ->
          { coefficients = degenerateCoefficients heights
          , start = 0
          , dx = 0
          } |> Spline
+
+
+{-| Same as `withRange`, except instead of passing the endpoint as the
+second argument, you pass the x-distance between data points.
+
+    fSpline = withDelta 2 1 [ 1, 5.2, 3.2, 0.8 ]
+    -- equivalent to withRange 2 6 [ 1, 5.2, 3.2, 0.8 ]
+-}
+withDelta : Float -> Float -> List Float -> Spline
+withDelta start dx heights =
+  { coefficients = findCoefficients dx heights
+  , start = start
+  , dx = dx
+  } |> Spline
 
 
 degenerateCoefficients : List Float -> Array Coefficients
