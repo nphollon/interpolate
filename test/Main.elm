@@ -156,10 +156,18 @@ testSurface =
 
     assertValueAt point expected =
       assertEqual expected (Bicubic.valueAt point spline)
+
+    testSurface name point expected =
+      suite name
+              [ test "value" (assertEqual expected.value (Bicubic.valueAt point spline))
+              , test "gradient" (assertEqual expected.gradient (Bicubic.gradientAt point spline))
+              , test "local surface" (assertEqual expected (Bicubic.surfaceAt point spline))
+              ]
   in
     suite "z = 6xy + 3y - 2x - 1"
-            [ test "at (0,0)"
-                     (assertValueAt {x=0,y=0} -1)
+            [ testSurface "at (0,0)"
+                            { x = 0, y = 0}
+                            { value = -1, gradient = { x = -2, y = 3 } }
             , test "at (1,0)"
                      (assertValueAt {x=1,y=0} -3)
             , test "at (2,0)"
@@ -175,7 +183,7 @@ testSurface =
             ]
       
 
-             
+  
 port runner : Signal (Task a ())
 port runner =
   Console.run (runDisplay allTests)
