@@ -189,10 +189,13 @@ testMatrix : Test
 testMatrix =
   let
     varied =
-      Matrix.fromRows [[1, 2], [3, 4]] |> Maybe.withDefault uniform
+      Matrix.fromRows [[1, 2], [3, 4]] |> withDefault
 
     uniform =
       Matrix.repeat 3 4 8
+
+    withDefault =
+      Maybe.withDefault uniform
   in
     suite "Matrix utilities"
             [ test "rows slices matrix horizontally"
@@ -205,36 +208,75 @@ testMatrix =
                           (Just [[1,3],[2,4]])
                           (Matrix.fromColumns [[1,2],[3,4]]
                              |> Maybe.map Matrix.rows)
+                          
             , test "columns slices matrix vertically"
                      <| assertEqual
                           [[1, 3], [2, 4]]
-                          (Matrix.columns varied)                        
+                          (Matrix.columns varied)
+                          
             , test "repeat builds a uniform m x n matrix"
                      <| assertEqual
                           [[8,8,8],[8,8,8],[8,8,8],[8,8,8]]
                           (uniform |> Matrix.rows)
+                          
             , test "width is width"
                      <| assertEqual 3
                           (uniform |> Matrix.width)
+                          
             , test "height is height"
                      <| assertEqual 4
                           (uniform |> Matrix.height)
+                          
             , test "transpose reverse rows and columns"
                      <| assertEqual
                           [[1, 3], [2, 4]]
                           (Matrix.transpose varied |> Matrix.rows)
+                          
             , test "get accesses an element"
                      <| assertEqual
                           (Just 3)
                           (Matrix.get 0 1 varied)
+                          
             , test "set mutates an element"
                      <| assertEqual
                           [[1, 7], [3, 4]]
                           (Matrix.set 1 0 7 varied |> Matrix.rows)
+                          
             , test "map mutates all elements"
                      <| assertEqual
                           [[2, 4], [6, 8]]
                           (Matrix.map ((*) 2) varied |> Matrix.rows)
+              
+            , test "map4 combines 4 matrixes"
+                     <| assertEqual
+                          (Just [[(1,5,9,13),(2,7,11,14)],[(3,6,10,15),(4,8,12,16)]])
+                          (Matrix.map4 (,,,)
+                                 (Matrix.fromRows [[1, 2], [3, 4]] |> withDefault)
+                                 (Matrix.fromColumns [[5, 6], [7, 8]] |> withDefault)
+                                 (Matrix.fromColumns [[9, 10], [11, 12]] |> withDefault)
+                                 (Matrix.fromRows [[13, 14], [15, 16]] |> withDefault)
+                           |> Maybe.map Matrix.rows
+                          )
+                     
+            , test "map4 fails if matrixes are different sizes"
+                     <| assertEqual
+                          Nothing
+                          (Matrix.map4 (,,,)
+                                 (Matrix.fromRows [[1]] |> withDefault)
+                                 (Matrix.fromRows [[5]] |> withDefault)
+                                 (Matrix.fromRows [[4]] |> withDefault)
+                                 (Matrix.fromRows [[2, 3]] |> withDefault)
+                          )
+                                 
+                     {-
+            , test "times multiplies matrixes"
+                     <| assertEqual
+                          [[8, 9], [20, 13], [32, 21]]
+                          (Matrix.rows <| Matrix.times
+                                 (Matrix.fromRows [[1, 2], [3, 4], [5, 6]] |> withDefault)
+                                 (Matrix.fromRows [[4, 3], [2, 1]] |> withDefault)
+                          )
+                      -}
             ]
              
 port runner : Signal (Task a ())

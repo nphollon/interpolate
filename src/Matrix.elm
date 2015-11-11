@@ -96,7 +96,8 @@ set x y newItem matrix =
          | otherwise -> indexedItem
   in
     { matrix | data <- List.map insert matrix.data }
-           
+
+    
 quadCollapse : Matrix a -> Matrix (Quad a)
 quadCollapse _ = def  
 
@@ -111,8 +112,26 @@ map f matrix =
 
 
 map4 : (a -> b -> c -> d -> e) ->
-       Matrix a -> Matrix b -> Matrix c -> Matrix d -> Matrix e
-map4 _ _ _ _ _ = def
+       Matrix a -> Matrix b -> Matrix c -> Matrix d -> Maybe (Matrix e)
+map4 f m1 m2 m3 m4 =
+  let
+    new (p, v1) (_, v2) (_, v3) (_, v4) =
+      (p, f v1 v2 v3 v4)
+
+    data =
+      List.map4 new m1.data m2.data m3.data m4.data
+      
+    dim matrix =
+      (matrix.width, matrix.height)
+      
+    sameSize =
+      dim m1 == dim m2 &&
+      dim m1 == dim m3 &&
+      dim m1 == dim m4
+  in
+    if | sameSize -> Just { m1 | data <- data }
+       | otherwise -> Nothing
+              
 
 
 rows : Matrix a -> List (List a)
@@ -144,10 +163,20 @@ transpose original =
   let
     swapIndexes ((i, j), x) =
       ((j, i), x)
+
+    compareIndexes ((i1, j1), _) ((i2, j2), _) =
+      case compare j1 j2 of
+        LT -> LT
+        EQ -> compare i1 i2
+        GT -> GT        
+      
+    data =
+      List.map swapIndexes original.data
+        |> List.sortWith compareIndexes
   in
     { width = original.height
     , height = original.width
-    , data = List.map swapIndexes original.data
+    , data = data
     }
               
 

@@ -77,15 +77,17 @@ degenerateCoefficients data =
     Matrix.repeat 4 4 0
       |> Matrix.set 0 0 height
       |> Matrix.repeat 1 1
-                         
+
+         
 findCoefficients : Point -> Matrix Float -> Matrix Coefficients
 findCoefficients delta data =
   findDerivatives delta data
-  |> Matrix.quadCollapse
-  |> Matrix.map fromDerivatives
+  |> Maybe.map Matrix.quadCollapse
+  |> Maybe.map (Matrix.map fromDerivatives)
+  |> Maybe.withDefault (degenerateCoefficients data)
 
 
-findDerivatives : Point -> Matrix Float -> Matrix Derivatives
+findDerivatives : Point -> Matrix Float -> Maybe (Matrix Derivatives)
 findDerivatives delta data =
   let
     xDerivs =
