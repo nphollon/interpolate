@@ -146,7 +146,10 @@ fromDerivatives d =
       , [ 0, 0, -1, 1 ]
       ] |> Matrix.fromRows |> withDefaultMatrix
   in
-    (Matrix.transpose factors) `Matrix.times` derivsMatrix `Matrix.times` factors
+    Maybe.andThen
+           (Matrix.times derivsMatrix factors)
+           (Matrix.times (Matrix.transpose factors))
+    |> withDefaultMatrix
 
 
 withDefaultMatrix : Maybe (Matrix Float) -> Matrix Float

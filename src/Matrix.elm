@@ -133,7 +133,6 @@ map4 f m1 m2 m3 m4 =
        | otherwise -> Nothing
               
 
-
 rows : Matrix a -> List (List a)
 rows matrix =
   let
@@ -154,8 +153,25 @@ columns : Matrix a -> List (List a)
 columns = transpose >> rows
 
 
-times : Matrix Float -> Matrix Float -> Matrix Float
-times _ _ = def
+times : Matrix Float -> Matrix Float -> Maybe (Matrix Float)
+times a b =
+  let
+    bColumns =
+      columns b
+
+    aRows =
+      rows a
+
+    dotProduct row column =
+      List.sum (List.map2 (*) row column)
+
+    dotColumns columns row =
+      List.map (dotProduct row) columns
+  in
+    if | a.width == b.height ->
+         fromRows (List.map (dotColumns bColumns) aRows)
+         
+       | otherwise -> Nothing
 
 
 transpose : Matrix a -> Matrix a

@@ -267,16 +267,23 @@ testMatrix =
                                  (Matrix.fromRows [[4]] |> withDefault)
                                  (Matrix.fromRows [[2, 3]] |> withDefault)
                           )
-                                 
-                     {-
+                     
             , test "times multiplies matrixes"
                      <| assertEqual
-                          [[8, 9], [20, 13], [32, 21]]
-                          (Matrix.rows <| Matrix.times
-                                 (Matrix.fromRows [[1, 2], [3, 4], [5, 6]] |> withDefault)
-                                 (Matrix.fromRows [[4, 3], [2, 1]] |> withDefault)
+                          (Just [[8, 5], [20, 13], [32, 21]])
+                          (Matrix.times
+                                   (Matrix.fromRows [[1, 2], [3, 4], [5, 6]] |> withDefault)
+                                   (Matrix.fromRows [[4, 3], [2, 1]] |> withDefault)
+                           |> Maybe.map Matrix.rows
                           )
-                      -}
+
+            , test "height of first operand must equal width of second"
+                     <| assertEqual
+                          Nothing
+                          (Matrix.times
+                                   (Matrix.fromRows [[4, 3], [2, 1]] |> withDefault)
+                                   (Matrix.fromRows [[1, 2], [3, 4], [5, 6]] |> withDefault)
+                          )
             ]
              
 port runner : Signal (Task a ())
