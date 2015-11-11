@@ -99,8 +99,39 @@ set x y newItem matrix =
 
     
 quadCollapse : Matrix a -> Matrix (Quad a)
-quadCollapse _ = def  
+quadCollapse matrix =
+  let
+    jLimit =
+      matrix.height - 1
 
+    iLimit =
+      matrix.width - 1
+            
+    filter checkIndexes =
+      List.filter (fst >> uncurry checkIndexes) matrix.data
+          
+    northwest =
+      filter (\i j -> (i < iLimit) && (j < jLimit))
+
+    northeast =
+      filter (\i j -> (i > 0) && (j < jLimit))
+
+    southwest =
+      filter (\i j -> (i < iLimit) && (j > 0))
+
+    southeast =
+      filter (\i j -> (i > 0) && (j > 0))
+
+    pack (pos, nw) (_, ne) (_, sw) (_, se) =
+      { n = { w = nw, e = ne }
+      , s = { w = sw, e = se }
+      } |> (,) pos
+  in
+    { width = iLimit
+    , height = jLimit
+    , data = List.map4 pack northwest northeast southwest southeast
+    }
+      
 
 map : (a -> b) -> Matrix a -> Matrix b
 map f matrix =
@@ -202,7 +233,6 @@ type alias Matrix a =
   , data : List ((Int, Int), a)
   }
 
-def = { width = 0, height = 0, data = [] }
 
 type alias Quad a =
   { n : { w : a, e : a }

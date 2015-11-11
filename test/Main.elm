@@ -284,6 +284,39 @@ testMatrix =
                                    (Matrix.fromRows [[4, 3], [2, 1]] |> withDefault)
                                    (Matrix.fromRows [[1, 2], [3, 4], [5, 6]] |> withDefault)
                           )
+
+            , test "quadCollapse on a 2x2 matrix returns 1x1 matrix"
+                     <| assertEqual
+                          ([ [ { n = { w = 3, e = 2 }
+                               , s = { w = 0 , e = 1 }
+                               }
+                             ]
+                           ]
+                          )
+                          (Matrix.fromRows [[3, 2], [0, 1]]
+                             |> withDefault
+                             |> Matrix.quadCollapse
+                             |> Matrix.rows
+                          )
+                     
+            , test "quadCollapse on a 3x4 matrix returns a 2x3 matrix"
+                     <| assertEqual
+                          ([ [ { n = {w=1,e=2}, s = {w=4,e=5} }
+                             , { n = {w=2,e=3}, s = {w=5,e=6} }
+                             ]
+                           , [ { n = {w=4,e=5}, s = {w=7,e=8} }
+                             , { n = {w=5,e=6}, s = {w=8,e=9} }
+                             ]
+                           , [ { n = {w=7,e=8}, s = {w=10,e=11} }
+                             , { n = {w=8,e=9}, s = {w=11,e=12} }
+                             ]
+                           ]
+                          )
+                          (Matrix.fromRows [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
+                             |> withDefault
+                             |> Matrix.quadCollapse
+                             |> Matrix.rows
+                          )
             ]
              
 port runner : Signal (Task a ())
