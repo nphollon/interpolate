@@ -164,7 +164,6 @@ testSurface =
               [ test "value" (assertEqual expected.value (Bicubic.valueAt point spline))
               , test "gradient" (assertEqual expected.gradient (Bicubic.gradientAt point spline))
               , test "local surface" (assertEqual expected (Bicubic.surfaceAt point spline))
-              , test "tostring" (assertEqual Nothing (Just spline))
               ]
   in
     suite "curve"

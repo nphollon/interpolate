@@ -1,4 +1,4 @@
-module Interpolate.Bicubic (Data, Point, Spline
+module Interpolate.Bicubic (Data, Point, Spline, LocalSurface
                            , rows, emptyData, withRange
                            , valueAt, gradientAt, surfaceAt) where
 
@@ -41,33 +41,32 @@ type alias LocalSurface =
   }
 
 
--- TODO refactor
 evaluate : (Point -> Coefficients -> a) -> Point -> Spline -> a
 evaluate f point (Spline spline) =
   let
-    xIndex =
-      (point.x - spline.start.x) / spline.delta.x
-        |> floor
-        |> clamp 0 (Matrix.width spline.coefficients - 1)
+    maxIndex =
+      { x = Matrix.width spline.coefficients - 1
+      , y = Matrix.height spline.coefficients - 1
+      }
+    
+    recentered =
+      pointMap (-) point spline.start
 
-    yIndex =
-      (point.y - spline.start.y) / spline.delta.y
-        |> floor
-        |> clamp 0 (Matrix.height spline.coefficients - 1)
+    normalized =
+      pointMap (/) recentered spline.delta
 
-    xOffset =
-      (point.x - spline.start.x) - (toFloat xIndex * spline.delta.x)
+    index =
+      pointMap (floor >> flip (clamp 0)) normalized maxIndex
 
-    yOffset =
-      (point.y - spline.start.y) - (toFloat yIndex * spline.delta.y)
-
-    coeff =
-      Matrix.get xIndex yIndex spline.coefficients
-        |> Maybe.withDefault defaultMatrix
+    offset =
+      pointMap (toFloat >> (*)) index spline.delta
+        |> pointMap (-) recentered
   in
-    f { x = xOffset, y = yOffset } coeff
+    Matrix.get index.x index.y spline.coefficients
+      |> Maybe.withDefault defaultMatrix
+      |> f offset
 
-
+         
 cubic : Point -> Coefficients -> Float
 cubic { x, y } =
   addMonomials (\i j factor ->
@@ -138,34 +137,33 @@ degenerateCoefficients data =
          
 findCoefficients : Point -> Matrix Float -> Matrix Coefficients
 findCoefficients delta data =
-  findDerivatives delta data
+  findDerivatives data
   |> Maybe.map Matrix.quadCollapse
   |> Maybe.map (Matrix.map (fromDerivatives delta))
   |> Maybe.withDefault (degenerateCoefficients data)
 
 
--- TODO remove delta
-findDerivatives : Point -> Matrix Float -> Maybe (Matrix Derivatives)
-findDerivatives delta data =
+findDerivatives : Matrix Float -> Maybe (Matrix Derivatives)
+findDerivatives data =
   let
     xDerivs =
       Matrix.rows data
         |> List.map (Cubic.withDelta 0 1)
-        |> List.map (slopes 1 (Matrix.width data))
+        |> List.map (slopes (Matrix.width data))
         |> Matrix.fromRows
         |> withDefaultMatrix
 
     yDerivs =
       Matrix.columns data
         |> List.map (Cubic.withDelta 0 1)
-        |> List.map (slopes 1 (Matrix.height data))
+        |> List.map (slopes (Matrix.height data))
         |> Matrix.fromColumns
         |> withDefaultMatrix
 
     xyDerivs =
       Matrix.columns xDerivs
         |> List.map (Cubic.withDelta 0 1)
-        |> List.map (slopes 1 (Matrix.height data))
+        |> List.map (slopes (Matrix.height data))
         |> Matrix.fromColumns
         |> withDefaultMatrix
     
@@ -179,12 +177,11 @@ findDerivatives delta data =
     Matrix.map4 pack data xDerivs yDerivs xyDerivs
 
 
-slopes : Float -> Int -> Cubic.Spline -> List Float
-slopes dx n spline =
-  let
-    slope i = Cubic.slopeAt (toFloat i * dx) spline
-  in
-    Array.initialize n slope |> Array.toList
+slopes : Int -> Cubic.Spline -> List Float
+slopes n spline =
+  (toFloat >> flip Cubic.slopeAt spline)
+    |> Array.initialize n 
+    |> Array.toList
 
          
 fromDerivatives : Point -> Quad Derivatives -> Coefficients
@@ -259,11 +256,6 @@ squarify matrix =
       |> withDefaultMatrix
 
 
-scaleTo : Point -> Int -> Int -> Float -> Float
-scaleTo delta i j factor =
-  factor / delta.x^(toFloat i) / delta.y^(toFloat j)
-
-
 withDefaultMatrix : Maybe (Matrix Float) -> Matrix Float
 withDefaultMatrix =
   Maybe.withDefault defaultMatrix
@@ -272,7 +264,14 @@ withDefaultMatrix =
 defaultMatrix : Matrix Float
 defaultMatrix =
   Matrix.repeat 1 1 0
-        
+
+
+pointMap : (a -> b -> c) -> { x:a, y:a } -> { x:b, y:b } -> { x:c, y:c }
+pointMap op a b =
+  { x = op a.x b.x
+  , y = op a.y b.y
+  }
+
   
 type Data =
   Data (Matrix Float)
