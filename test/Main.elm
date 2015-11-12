@@ -9,7 +9,7 @@ import Text
 import Task exposing (Task)
 
 import ElmTest.Test exposing (Test, suite, test)
-import ElmTest.Assertion exposing (assertEqual, assertNotEqual)
+import ElmTest.Assertion exposing (assert, assertEqual, assertNotEqual)
 import ElmTest.Runner.Console exposing (runDisplay)
 
 import Console
@@ -176,6 +176,7 @@ testSurface =
             , testSurface "at end point"
                             { x = 3, y = 6 }
                             { value = 6, gradient = { x = 2, y = 0.75 }, lagrangian = 0 }
+                            
             , testSurface "beyond data region"
                             { x = 4, y = 0 }
                             { value = -1, gradient = { x = -2.5, y = 1.5 }, lagrangian = 0 }
@@ -195,9 +196,41 @@ testContinuity =
       Bicubic.rows data
         |> Maybe.withDefault Bicubic.emptyData
         |> Bicubic.withDelta {x = -1, y = -1 } { x = 1, y = 1 }
+
+    aboutEqual a b =
+      (a - b)^2 < 0.01
+
+    surfaceAt pt =
+      Bicubic.surfaceAt pt spline
+             
+    testSmooth name a b =
+      suite name
+              [ test "values" <| assert
+                       <| aboutEqual a.value b.value
+              , test "x derivatives" <| assert
+                       <| aboutEqual a.gradient.x b.gradient.x
+              , test "y derivatives" <| assert
+                       <| aboutEqual a.gradient.y b.gradient.y
+              , test "lagrangians" <| assert
+                       <| aboutEqual a.lagrangian b.lagrangian
+              ]
   in
     suite "surface should be smooth at knots"
-          [
+          [ testSmooth "smooth across x boundary"
+                 (surfaceAt { x = -0.001, y = -0.5 })
+                 (surfaceAt { x = 0.001, y = -0.5 })
+                 
+          , testSmooth "smooth across y boundary"
+                 (surfaceAt { x = 0.5, y = -0.001 })
+                 (surfaceAt { x = 0.5, y = 0.001 })
+                 
+          , testSmooth "smooth across knot, northwest to southeast"
+                 (surfaceAt { x = -0.001, y = -0.001 })
+                 (surfaceAt { x = 0.001, y = 0.001 })
+                 
+          , testSmooth "smooth across knot, northeast to southwest"
+                 (surfaceAt { x = 0.001, y = -0.001 })
+                 (surfaceAt { x = -0.001, y = 0.001 })
           ]
 
                  
