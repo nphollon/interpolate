@@ -147,8 +147,8 @@ testSurface : Test
 testSurface =
   let
     data =
-      [ [0, 1]
-      , [1, 2]
+      [ [5, 3]
+      , [2, 6]
       ]
 
     spline =
@@ -168,12 +168,15 @@ testSurface =
   in
     suite "curve"
             [ testSurface "at start point"
-                            { x = 0, y = 0 }
-                            { value = -1, gradient = { x = 0.5, y = 0.25 } }
+                            { x = 1, y = 2 }
+                            { value = 5, gradient = { x = -1, y = -0.75 } }
 
             , testSurface "at end point"
-                            { x = 2, y = 1 }
-                            { value = 0.25, gradient = { x = 0.5, y = 0.25 } }
+                            { x = 3, y = 6 }
+                            { value = 6, gradient = { x = 2, y = 0.75 } }
+            , testSurface "beyond data region"
+                            { x = 4, y = 0 }
+                            { value = -1, gradient = { x = -2.5, y = 1.5 } }
             ]
 
 testMatrix : Test
