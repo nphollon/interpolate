@@ -148,13 +148,13 @@ testSurface =
   let
     data =
       [ [0, 1]
-      , [0, 1]
+      , [1, 2]
       ]
 
     spline =
       Bicubic.rows data
         |> Maybe.withDefault Bicubic.emptyData
-        |> Bicubic.withRange {x=0,y=0} {x=1,y=1}
+        |> Bicubic.withRange {x=1,y=2} {x=3,y=6}
 
     assertValueAt point expected =
       assertEqual expected (Bicubic.valueAt point spline)
@@ -169,8 +169,12 @@ testSurface =
   in
     suite "curve"
             [ testSurface "at start point"
-                            { x = 0, y = 0}
-                            { value = 0, gradient = { x = 1, y = 0 } }
+                            { x = 0, y = 0 }
+                            { value = -1, gradient = { x = 0.5, y = 0.25 } }
+
+            , testSurface "at end point"
+                            { x = 2, y = 1 }
+                            { value = 0.25, gradient = { x = 0.5, y = 0.25 } }
             ]
 
 testMatrix : Test

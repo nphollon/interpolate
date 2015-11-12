@@ -40,7 +40,8 @@ type alias LocalSurface =
   , gradient : Point
   }
 
-                        
+
+-- TODO refactor
 evaluate : (Point -> Coefficients -> a) -> Point -> Spline -> a
 evaluate f point (Spline spline) =
   let
@@ -55,10 +56,10 @@ evaluate f point (Spline spline) =
         |> clamp 0 (Matrix.height spline.coefficients - 1)
 
     xOffset =
-      point.x - (toFloat xIndex * spline.delta.x) - spline.start.x
+      (point.x - spline.start.x) - (toFloat xIndex * spline.delta.x)
 
     yOffset =
-      point.y - (toFloat yIndex * spline.delta.y) - spline.start.y
+      (point.y - spline.start.y) - (toFloat yIndex * spline.delta.y)
 
     coeff =
       Matrix.get xIndex yIndex spline.coefficients
@@ -139,31 +140,32 @@ findCoefficients : Point -> Matrix Float -> Matrix Coefficients
 findCoefficients delta data =
   findDerivatives delta data
   |> Maybe.map Matrix.quadCollapse
-  |> Maybe.map (Matrix.map fromDerivatives)
+  |> Maybe.map (Matrix.map (fromDerivatives delta))
   |> Maybe.withDefault (degenerateCoefficients data)
 
 
+-- TODO remove delta
 findDerivatives : Point -> Matrix Float -> Maybe (Matrix Derivatives)
 findDerivatives delta data =
   let
     xDerivs =
       Matrix.rows data
-        |> List.map (Cubic.withDelta 0 delta.x)
-        |> List.map (slopes delta.x (Matrix.width data))
+        |> List.map (Cubic.withDelta 0 1)
+        |> List.map (slopes 1 (Matrix.width data))
         |> Matrix.fromRows
         |> withDefaultMatrix
 
     yDerivs =
       Matrix.columns data
-        |> List.map (Cubic.withDelta 0 delta.y)
-        |> List.map (slopes delta.y (Matrix.height data))
+        |> List.map (Cubic.withDelta 0 1)
+        |> List.map (slopes 1 (Matrix.height data))
         |> Matrix.fromColumns
         |> withDefaultMatrix
 
     xyDerivs =
       Matrix.columns xDerivs
-        |> List.map (Cubic.withDelta 0 delta.y)
-        |> List.map (slopes delta.y (Matrix.height data))
+        |> List.map (Cubic.withDelta 0 1)
+        |> List.map (slopes 1 (Matrix.height data))
         |> Matrix.fromColumns
         |> withDefaultMatrix
     
@@ -185,8 +187,8 @@ slopes dx n spline =
     Array.initialize n slope |> Array.toList
 
          
-fromDerivatives : Quad Derivatives -> Coefficients
-fromDerivatives d =
+fromDerivatives : Point -> Quad Derivatives -> Coefficients
+fromDerivatives delta d =
   let
     derivsMatrix =
       [ [ d.n.w.z
@@ -229,9 +231,13 @@ fromDerivatives d =
       , [-6, 6, 6,-6,  -4,-2, 4, 2,  -3, 3,-3, 3,  -2,-1,-2,-1 ]
       , [ 4,-4,-4, 4,   2, 2,-2,-2,   2,-2, 2,-2,   1, 1, 1, 1 ]
       ] |> Matrix.fromRows |> withDefaultMatrix
+
+    scale i j factor =
+      factor / delta.x^(toFloat i) / delta.y^(toFloat j)
   in
     Matrix.times factors derivsMatrix
       |> Maybe.map squarify
+      |> Maybe.map (Matrix.indexedMap scale)
       |> withDefaultMatrix
 
 
@@ -251,6 +257,11 @@ squarify matrix =
       |> slices
       |> Matrix.fromRows
       |> withDefaultMatrix
+
+
+scaleTo : Point -> Int -> Int -> Float -> Float
+scaleTo delta i j factor =
+  factor / delta.x^(toFloat i) / delta.y^(toFloat j)
 
 
 withDefaultMatrix : Maybe (Matrix Float) -> Matrix Float
