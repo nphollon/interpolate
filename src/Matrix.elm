@@ -3,7 +3,8 @@ module Matrix (Matrix, Quad
               , width, height
               , rows, columns
               , get, set
-              , map, map4, transpose, times, quadCollapse) where
+              , map, indexedMap, map4
+              , transpose, times, quadCollapse, sum) where
 
 import Array exposing (Array)
 
@@ -134,10 +135,15 @@ quadCollapse matrix =
       
 
 map : (a -> b) -> Matrix a -> Matrix b
-map f matrix =
+map f =
+  indexedMap (always (always f))
+  
+
+indexedMap : (Int -> Int -> a -> b) -> Matrix a -> Matrix b
+indexedMap f matrix =
   let
-    new (position, value) =
-      (position, f value)
+    new ((i, j), value) =
+      ((i, j), f i j value)
   in
     { matrix | data <- List.map new matrix.data }
 
@@ -226,6 +232,11 @@ transpose original =
     , data = data
     }
               
+
+sum : Matrix Float -> Float
+sum matrix =
+  List.foldl (snd >> (+)) 0 matrix.data
+
 
 type alias Matrix a =
   { width : Int

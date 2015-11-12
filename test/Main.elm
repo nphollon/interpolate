@@ -147,14 +147,14 @@ testSurface : Test
 testSurface =
   let
     data =
-      [ [-1, -5]
-      , [5, 25]
+      [ [0, 1]
+      , [0, 1]
       ]
 
     spline =
       Bicubic.rows data
         |> Maybe.withDefault Bicubic.emptyData
-        |> Bicubic.withRange {x=0,y=0} {x=2,y=2}
+        |> Bicubic.withRange {x=0,y=0} {x=1,y=1}
 
     assertValueAt point expected =
       assertEqual expected (Bicubic.valueAt point spline)
@@ -164,26 +164,14 @@ testSurface =
               [ test "value" (assertEqual expected.value (Bicubic.valueAt point spline))
               , test "gradient" (assertEqual expected.gradient (Bicubic.gradientAt point spline))
               , test "local surface" (assertEqual expected (Bicubic.surfaceAt point spline))
+              , test "tostring" (assertEqual Nothing (Just spline))
               ]
   in
-    suite "z = 6xy + 3y - 2x - 1"
-            [ testSurface "at (0,0)"
+    suite "curve"
+            [ testSurface "at start point"
                             { x = 0, y = 0}
-                            { value = -1, gradient = { x = -2, y = 3 } }
-            , test "at (1,0)"
-                     (assertValueAt {x=1,y=0} -3)
-            , test "at (2,0)"
-                     (assertValueAt {x=2,y=0} -5)
-            , test "at (0,1)"
-                     (assertValueAt {x=0,y=1} 2)
-            , test "at (0,2)"
-                     (assertValueAt {x=0,y=2} 5)
-            , test "at (1,1)"
-                     (assertValueAt {x=1,y=1} 6)
-            , test "at (2,2)"
-                     (assertValueAt {x=2,y=2} 25)
+                            { value = 0, gradient = { x = 1, y = 0 } }
             ]
-      
 
 testMatrix : Test
 testMatrix =
@@ -246,6 +234,13 @@ testMatrix =
                      <| assertEqual
                           [[2, 4], [6, 8]]
                           (Matrix.map ((*) 2) varied |> Matrix.rows)
+
+            , test "indexedMap provides indexes to mapping function"
+                     <| assertEqual
+                          [ [ (0, 0, 1), (1, 0, 2) ]
+                          , [ (0, 1, 3), (1, 1, 4) ]
+                          ]
+                          (Matrix.indexedMap (,,) varied |> Matrix.rows)
               
             , test "map4 combines 4 matrixes"
                      <| assertEqual
@@ -257,7 +252,7 @@ testMatrix =
                                  (Matrix.fromRows [[13, 14], [15, 16]] |> withDefault)
                            |> Maybe.map Matrix.rows
                           )
-                     
+
             , test "map4 fails if matrixes are different sizes"
                      <| assertEqual
                           Nothing
@@ -317,6 +312,11 @@ testMatrix =
                              |> Matrix.quadCollapse
                              |> Matrix.rows
                           )
+                     
+            , test "sum adds all elements of a float matrix"
+                   <| assertEqual
+                        10
+                        (Matrix.sum varied)
             ]
              
 port runner : Signal (Task a ())

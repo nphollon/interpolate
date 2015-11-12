@@ -19,12 +19,13 @@ emptyData =
        
            
 valueAt : Point -> Spline -> Float
-valueAt point (Spline spline) =
-  0
+valueAt =
+  evaluate cubic
 
 
 gradientAt : Point -> Spline -> Point
-gradientAt a b = a
+gradientAt =
+  evaluate del
 
 
 surfaceAt : Point -> Spline -> LocalSurface
@@ -39,7 +40,62 @@ type alias LocalSurface =
   , gradient : Point
   }
 
-          
+                        
+evaluate : (Point -> Coefficients -> a) -> Point -> Spline -> a
+evaluate f point (Spline spline) =
+  let
+    xIndex =
+      (point.x - spline.start.x) / spline.delta.x
+        |> floor
+        |> clamp 0 (Matrix.width spline.coefficients - 1)
+
+    yIndex =
+      (point.y - spline.start.y) / spline.delta.y
+        |> floor
+        |> clamp 0 (Matrix.height spline.coefficients - 1)
+
+    xOffset =
+      point.x - (toFloat xIndex * spline.delta.x) - spline.start.x
+
+    yOffset =
+      point.y - (toFloat yIndex * spline.delta.y) - spline.start.y
+
+    coeff =
+      Matrix.get xIndex yIndex spline.coefficients
+        |> Maybe.withDefault defaultMatrix
+  in
+    f { x = xOffset, y = yOffset } coeff
+
+
+cubic : Point -> Coefficients -> Float
+cubic { x, y } =
+  addMonomials (\i j factor ->
+                  factor * x^i * y^j
+               )
+
+                 
+del : Point -> Coefficients -> Point
+del { x, y } coeff =
+  let
+    dz_dx i j factor =
+      if | (0 < i) -> factor * i * x^(i-1) * y^j
+         | otherwise -> 0
+
+    dz_dy i j factor =
+      if | (0 < j) -> factor * j * x^i * y^(j-1)
+         | otherwise -> 0
+  in
+    { x = addMonomials dz_dx coeff
+    , y = addMonomials dz_dy coeff
+    }
+
+
+addMonomials : (Float -> Float -> Float -> Float) -> Coefficients -> Float
+addMonomials monomial coeff =
+  Matrix.indexedMap (\i j -> monomial (toFloat i) (toFloat j)) coeff
+    |> Matrix.sum
+                       
+                     
 withRange : Point -> Point -> Data -> Spline
 withRange start end (Data data) =
   let
@@ -55,13 +111,13 @@ withRange start end (Data data) =
       (Matrix.width data > 1) && (Matrix.height data > 1)
   in
     if | bigEnough ->
-         { coeff = findCoefficients delta data
+         { coefficients = findCoefficients delta data
          , start = start
          , delta = delta
          } |> Spline
 
        | otherwise ->                   
-         { coeff = degenerateCoefficients data
+         { coefficients = degenerateCoefficients data
          , start = { x = 0, y = 0 }
          , delta = { x = 0, y = 0 }
          } |> Spline
@@ -133,23 +189,68 @@ fromDerivatives : Quad Derivatives -> Coefficients
 fromDerivatives d =
   let
     derivsMatrix =
-      [ [ d.n.w.z, d.n.e.z, d.n.w.dz_dy, d.n.e.dz_dy ]
-      , [ d.s.w.z, d.s.e.z, d.s.w.dz_dy, d.s.e.dz_dy ]
-      , [ d.n.w.dz_dx, d.n.e.dz_dx, d.n.w.dz_dx_dy, d.n.e.dz_dx_dy ]
-      , [ d.s.w.dz_dx, d.s.e.dz_dx, d.s.w.dz_dx_dy, d.s.e.dz_dx_dy ]
-      ] |> Matrix.fromRows |> withDefaultMatrix
+      [ [ d.n.w.z
+        , d.n.e.z
+        , d.s.w.z
+        , d.s.e.z
+        , d.n.w.dz_dx
+        , d.n.e.dz_dx
+        , d.s.w.dz_dx
+        , d.s.e.dz_dx
+        , d.n.w.dz_dy
+        , d.n.e.dz_dy
+        , d.s.w.dz_dy
+        , d.s.e.dz_dy
+        , d.n.w.dz_dx_dy
+        , d.n.e.dz_dx_dy
+        , d.s.w.dz_dx_dy
+        , d.s.e.dz_dx_dy
+        ]
+      ] |> Matrix.fromColumns |> withDefaultMatrix
     
     factors =
-      [ [ 1, 0, -3, 2 ]
-      , [ 0, 0, 3, -2 ]
-      , [ 0, 1, -2, 1 ]
-      , [ 0, 0, -1, 1 ]
+      [ [ 1, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 ]
+      , [ 0, 0, 0, 0,   1, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 ]
+      , [-3, 3, 0, 0,  -2,-1, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 ]
+      , [ 2,-2, 0, 0,   1, 1, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 ]
+        
+      , [ 0, 0, 0, 0,   0, 0, 0, 0,   1, 0, 0, 0,   0, 0, 0, 0 ]
+      , [ 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   1, 0, 0, 0 ]
+      , [ 0, 0, 0, 0,   0, 0, 0, 0,  -3, 3, 0, 0,  -2,-1, 0, 0 ]
+      , [ 0, 0, 0, 0,   0, 0, 0, 0,   2,-2, 0, 0,   1, 1, 0, 0 ]
+
+      , [-3, 0, 3, 0,   0, 0, 0, 0,  -2, 0,-1, 0,   0, 0, 0, 0 ]
+      , [ 0, 0, 0, 0,  -3, 0, 3, 0,   0, 0, 0, 0,  -2, 0,-1, 0 ]
+      , [ 9,-9,-9, 9,   6, 3,-6,-3,   6,-6, 3,-3,   4, 2, 2, 1 ]
+      , [-6, 6, 6,-6,  -3,-3, 3, 3,  -4, 4,-2, 2,  -2,-2,-1,-1 ]
+
+      , [ 2, 0,-2, 0,   0, 0, 0, 0,   1, 0, 1, 0,   0, 0, 0, 0 ]
+      , [ 0, 0, 0, 0,   2, 0,-2, 0,   0, 0, 0, 0,   1, 0, 1, 0 ]
+      , [-6, 6, 6,-6,  -4,-2, 4, 2,  -3, 3,-3, 3,  -2,-1,-2,-1 ]
+      , [ 4,-4,-4, 4,   2, 2,-2,-2,   2,-2, 2,-2,   1, 1, 1, 1 ]
       ] |> Matrix.fromRows |> withDefaultMatrix
   in
-    Maybe.andThen
-           (Matrix.times derivsMatrix factors)
-           (Matrix.times (Matrix.transpose factors))
-    |> withDefaultMatrix
+    Matrix.times factors derivsMatrix
+      |> Maybe.map squarify
+      |> withDefaultMatrix
+
+
+squarify : Matrix Float -> Matrix Float
+squarify matrix =
+  let
+    slices flat =
+      [ Array.slice 0 4 flat
+      , Array.slice 4 8 flat
+      , Array.slice 8 12 flat
+      , Array.slice 12 16 flat
+      ] |> List.map Array.toList
+  in
+    Matrix.columns matrix
+      |> List.concat
+      |> Array.fromList
+      |> slices
+      |> Matrix.fromRows
+      |> withDefaultMatrix
 
 
 withDefaultMatrix : Maybe (Matrix Float) -> Matrix Float
@@ -173,7 +274,7 @@ type alias Point =
 
 
 type Spline =
-  Spline { coeff : Matrix Coefficients
+  Spline { coefficients : Matrix Coefficients
          , start : Point
          , delta : Point
          }
