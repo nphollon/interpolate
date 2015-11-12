@@ -1,6 +1,6 @@
 module Interpolate.Bicubic (Data, Point, Spline, LocalSurface
-                           , rows, emptyData, withRange
-                           , valueAt, gradientAt, surfaceAt) where
+                           , rows, emptyData, withRange, withDelta
+                           , valueAt, gradientAt, surfaceAt, lagrangianAt) where
 
 import Array exposing (Array)
 
@@ -27,17 +27,26 @@ gradientAt : Point -> Spline -> Point
 gradientAt =
   evaluate del
 
+           
+lagrangianAt : Point -> Spline -> Float
+lagrangianAt =
+  evaluate delDotDel
 
+           
 surfaceAt : Point -> Spline -> LocalSurface
-surfaceAt a b =
-  { value = valueAt a b
-  , gradient = gradientAt a b
-  }
+surfaceAt =
+  evaluate (\pt coeff ->
+              { value = cubic pt coeff
+              , gradient = del pt coeff
+              , lagrangian = delDotDel pt coeff
+              }
+           )
 
 
 type alias LocalSurface =
   { value : Float
   , gradient : Point
+  , lagrangian : Float
   }
 
 
@@ -90,6 +99,23 @@ del { x, y } coeff =
     }
 
 
+delDotDel : Point -> Coefficients -> Float
+delDotDel { x, y } coeff =
+  let
+    d2z_dx2 i j factor =
+      if | (1 < i) -> factor * i * (i - 1) * x^(i-2) * y^j
+         | otherwise -> 0
+
+    d2z_dy2 i j factor =
+      if | (1 < j) -> factor * j * (j - 1) * x^i * y^(j-2)
+         | otherwise -> 0
+
+    derivTotal i j factor =
+      (d2z_dx2 i j factor) + (d2z_dy2 i j factor)
+  in
+    addMonomials derivTotal coeff
+
+
 addMonomials : (Float -> Float -> Float -> Float) -> Coefficients -> Float
 addMonomials monomial coeff =
   Matrix.indexedMap (\i j -> monomial (toFloat i) (toFloat j)) coeff
@@ -111,16 +137,21 @@ withRange start end (Data data) =
       (Matrix.width data > 1) && (Matrix.height data > 1)
   in
     if | bigEnough ->
-         { coefficients = findCoefficients delta data
-         , start = start
-         , delta = delta
-         } |> Spline
+         withDelta start delta (Data data)
 
        | otherwise ->                   
          { coefficients = degenerateCoefficients data
          , start = { x = 0, y = 0 }
          , delta = { x = 0, y = 0 }
          } |> Spline
+
+
+withDelta : Point -> Point -> Data -> Spline
+withDelta start delta (Data data) =
+  { coefficients = findCoefficients delta data
+  , start = start
+  , delta = delta
+  } |> Spline
 
 
 degenerateCoefficients : Matrix Float -> Matrix Coefficients

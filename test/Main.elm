@@ -26,10 +26,11 @@ allTests =
                   , testLinear
                   , testCubic
                   ]
-        , testMatrix
         , suite "Two-dimensional"
-                  [ testDataFactory
+                  [ testMatrix
+                  , testDataFactory
                   , testSurface
+                  , testContinuity
                   ]
         ]
 
@@ -163,22 +164,43 @@ testSurface =
       suite name
               [ test "value" (assertEqual expected.value (Bicubic.valueAt point spline))
               , test "gradient" (assertEqual expected.gradient (Bicubic.gradientAt point spline))
+              , test "lagrangian" (assertEqual expected.lagrangian (Bicubic.lagrangianAt point spline))
               , test "local surface" (assertEqual expected (Bicubic.surfaceAt point spline))
               ]
   in
-    suite "curve"
+    suite "6x'y' - 2x' - 3y' + 5, where x' = (x-1)/2 and y' = (y-2)/4"
             [ testSurface "at start point"
                             { x = 1, y = 2 }
-                            { value = 5, gradient = { x = -1, y = -0.75 } }
+                            { value = 5, gradient = { x = -1, y = -0.75 }, lagrangian = 0 }
 
             , testSurface "at end point"
                             { x = 3, y = 6 }
-                            { value = 6, gradient = { x = 2, y = 0.75 } }
+                            { value = 6, gradient = { x = 2, y = 0.75 }, lagrangian = 0 }
             , testSurface "beyond data region"
                             { x = 4, y = 0 }
-                            { value = -1, gradient = { x = -2.5, y = 1.5 } }
+                            { value = -1, gradient = { x = -2.5, y = 1.5 }, lagrangian = 0 }
             ]
 
+
+testContinuity : Test
+testContinuity =
+  let
+    data =
+      [ [ 5, 3, 5 ]
+      , [ 2, 6, 3 ]
+      , [ 1, 3, 7 ]
+      ]
+
+    spline =
+      Bicubic.rows data
+        |> Maybe.withDefault Bicubic.emptyData
+        |> Bicubic.withDelta {x = -1, y = -1 } { x = 1, y = 1 }
+  in
+    suite "surface should be smooth at knots"
+          [
+          ]
+
+                 
 testMatrix : Test
 testMatrix =
   let
