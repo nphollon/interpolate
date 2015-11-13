@@ -29,17 +29,16 @@ We could construct a 2D spline this way:
     end = { x = 6, y = 9 }
     delta = { x = 2, y = 3 }
 
+    -- These two splines are equivalent
     splineOne = withRange start end data
     splineTwo = withDelta start delta data
-
-`splineOne` and `splineTwo` are equivalent.
 
 
 # Creating data sets
 @docs rows, emptyData, Data
 
 # Creating splines
-@docs Vector, Point, withRange, withDelta, Spline
+@docs withRange, withDelta, Vector, Point, Spline
 
 # Interpolating
 @docs valueAt, gradientAt, laplacianAt, surfaceAt, LocalSurface
@@ -231,7 +230,7 @@ withRange start end (Data data) =
 {-| Construct a spline, given the position of the lower left data sample
 and the dimensions of a grid cell.
 -}
-withDelta : Point -> Point -> Data -> Spline
+withDelta : Point -> Vector -> Data -> Spline
 withDelta start delta (Data data) =
   { coefficients = findCoefficients delta data
   , start = start
@@ -392,7 +391,7 @@ pointMap op a b =
 {-|-}
 type alias LocalSurface =
   { value : Float
-  , gradient : Point
+  , gradient : Vector
   , laplacian : Float
   }
 
@@ -402,15 +401,15 @@ type Data =
   Data (Matrix Float)
 
 
-{-| Stores data with an x and a y component. This can be a point in space
-or an interval between two points 
+{-| Stores data with an x and a y component.
 -}
 type alias Vector =
   { x : Float
   , y : Float
   }
 
-{-| Alias for position vectors -}
+                  
+{-| Alias for position vectors. -}
 type alias Point = Vector
 
 
@@ -418,7 +417,7 @@ type alias Point = Vector
 type Spline =
   Spline { coefficients : Matrix Coefficients
          , start : Point
-         , delta : Point
+         , delta : Vector
          }
 
   
