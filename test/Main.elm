@@ -164,22 +164,22 @@ testSurface =
       suite name
               [ test "value" (assertEqual expected.value (Bicubic.valueAt point spline))
               , test "gradient" (assertEqual expected.gradient (Bicubic.gradientAt point spline))
-              , test "lagrangian" (assertEqual expected.lagrangian (Bicubic.lagrangianAt point spline))
+              , test "laplacian" (assertEqual expected.laplacian (Bicubic.laplacianAt point spline))
               , test "local surface" (assertEqual expected (Bicubic.surfaceAt point spline))
               ]
   in
     suite "6x'y' - 2x' - 3y' + 5, where x' = (x-1)/2 and y' = (y-2)/4"
             [ testSurface "at start point"
                             { x = 1, y = 2 }
-                            { value = 5, gradient = { x = -1, y = -0.75 }, lagrangian = 0 }
+                            { value = 5, gradient = { x = -1, y = -0.75 }, laplacian = 0 }
 
             , testSurface "at end point"
                             { x = 3, y = 6 }
-                            { value = 6, gradient = { x = 2, y = 0.75 }, lagrangian = 0 }
+                            { value = 6, gradient = { x = 2, y = 0.75 }, laplacian = 0 }
                             
             , testSurface "beyond data region"
                             { x = 4, y = 0 }
-                            { value = -1, gradient = { x = -2.5, y = 1.5 }, lagrangian = 0 }
+                            { value = -1, gradient = { x = -2.5, y = 1.5 }, laplacian = 0 }
             ]
 
 
@@ -211,8 +211,8 @@ testContinuity =
                        <| aboutEqual a.gradient.x b.gradient.x
               , test "y derivatives" <| assert
                        <| aboutEqual a.gradient.y b.gradient.y
-              , test "lagrangians" <| assert
-                       <| aboutEqual a.lagrangian b.lagrangian
+              , test "laplacians" <| assert
+                       <| aboutEqual a.laplacian b.laplacian
               ]
   in
     suite "surface should be smooth at knots"

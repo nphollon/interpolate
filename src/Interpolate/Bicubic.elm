@@ -1,6 +1,49 @@
-module Interpolate.Bicubic (Data, Point, Spline, LocalSurface
+module Interpolate.Bicubic (Data, Point, Vector, Spline, LocalSurface
                            , rows, emptyData, withRange, withDelta
-                           , valueAt, gradientAt, surfaceAt, lagrangianAt) where
+                           , valueAt, gradientAt, surfaceAt, laplacianAt) where
+
+{-| This module uses [bicubic splines](https://en.wikipedia.org/wiki/Bicubic_interpolation)
+to interpolate surfaces. Bicubic interpolation is the 2D equivalent
+of cubic interpolation.
+
+For example, if we have the following data:
+
+    y=|
+    9 | 1.9  2.1  5.5
+    6 | 2.2  3.1  5.4
+    3 | 3.8  4.0  4.3
+    0 | 1.1  2.3  3.8
+    -----------------
+     x=  2    4    6
+
+We could construct a 2D spline this way:
+
+    data = rows [ [ 1.1, 2.3, 3.8 ]
+                , [ 3.8, 4.0, 4.3 ]
+                , [ 2.2, 3.1, 5.4 ]
+                , [ 1.9, 2.1, 5.5 ]
+                ]
+             |> Maybe.withDefault emptyData
+
+    start = { x = 2, y = 0 }
+    end = { x = 6, y = 9 }
+    delta = { x = 2, y = 3 }
+
+    splineOne = withRange start end data
+    splineTwo = withDelta start delta data
+
+`splineOne` and `splineTwo` are equivalent.
+
+
+# Creating data sets
+@docs rows, emptyData, Data
+
+# Creating splines
+@docs Vector, Point, withRange, withDelta, Spline
+
+# Interpolating
+@docs valueAt, gradientAt, laplacianAt, surfaceAt, LocalSurface
+-}
 
 import Array exposing (Array)
 
@@ -8,46 +51,82 @@ import Interpolate.Cubic as Cubic
 import Matrix exposing (Matrix, Quad)
 
 
+{-| Construct a two-dimensional data set. The input is given in x-major order,
+so a grid of values like this:
+
+    f(0,0) = 1
+    f(1,0) = 2
+    f(0,1) = 3
+    f(1,1) = 4
+
+Should be passed to the function in this format:
+
+    rows [ [1,2], [3,4] ] -- returns Just Data
+
+If every row has the same length, the function returns a `Data` object that
+can be used to build a spline. If the rows are uneven (or empty), it returns
+`Nothing`.
+
+    rows [ [1,1,1], [1,1,1] ] -- returns Just Data
+
+    rows [ [1], [1], [1] ] -- returns Just Data
+
+    rows [ [1,1,1], [1] ] -- returns Nothing
+
+    rows [ [], [] ] -- returns Nothing
+
+    rows [ ] -- returns Nothing
+-}
+
 rows : List (List Float) -> Maybe Data
 rows =
   Matrix.fromRows >> Maybe.map Data
 
 
+{-| An empty data set. Useful as a default value when working 
+with the `rows` function. If you create a spline from it, the
+spline will be zero everywhere.
+-}
 emptyData : Data
 emptyData =
   Data defaultMatrix
        
            
+{-| Evaluate the spline at the given point -}
 valueAt : Point -> Spline -> Float
 valueAt =
   evaluate cubic
 
 
-gradientAt : Point -> Spline -> Point
+{-| Compute the [gradient](https://en.wikipedia.org/wiki/Gradient)
+of the spline at the given point. The gradient is the x and y
+partial derivatives of the spline.
+-}
+gradientAt : Point -> Spline -> Vector
 gradientAt =
   evaluate del
 
-           
-lagrangianAt : Point -> Spline -> Float
-lagrangianAt =
+
+{-| Compute the [Laplacian](https://en.wikipedia.org/wiki/Laplace_operator)
+of the spline at the given point. The Laplacian is the divergence
+of the gradient. It is computed by adding the x and y second partial
+derivatives. -}
+laplacianAt : Point -> Spline -> Float
+laplacianAt =
   evaluate delDotDel
 
-           
+
+{-| Returns `valueAt`, `gradientAt`, and `laplacianAt` results in
+a single record.
+-}
 surfaceAt : Point -> Spline -> LocalSurface
 surfaceAt =
   evaluate (\pt coeff ->
               { value = cubic pt coeff
               , gradient = del pt coeff
-              , lagrangian = delDotDel pt coeff
+              , laplacian = delDotDel pt coeff
               }
            )
-
-
-type alias LocalSurface =
-  { value : Float
-  , gradient : Point
-  , lagrangian : Float
-  }
 
 
 evaluate : (Point -> Coefficients -> a) -> Point -> Spline -> a
@@ -121,7 +200,10 @@ addMonomials monomial coeff =
   Matrix.indexedMap (\i j -> monomial (toFloat i) (toFloat j)) coeff
     |> Matrix.sum
                        
-                     
+
+{-| Construct a spline, given the positions of the lower left (min-x, min-y)
+and upper right (max-x, max-y) data samples, and a data set.
+-}
 withRange : Point -> Point -> Data -> Spline
 withRange start end (Data data) =
   let
@@ -146,6 +228,9 @@ withRange start end (Data data) =
          } |> Spline
 
 
+{-| Construct a spline, given the position of the lower left data sample
+and the dimensions of a grid cell.
+-}
 withDelta : Point -> Point -> Data -> Spline
 withDelta start delta (Data data) =
   { coefficients = findCoefficients delta data
@@ -303,17 +388,33 @@ pointMap op a b =
   , y = op a.y b.y
   }
 
-  
+
+{-|-}
+type alias LocalSurface =
+  { value : Float
+  , gradient : Point
+  , laplacian : Float
+  }
+
+
+{-|-}
 type Data =
   Data (Matrix Float)
 
-                
-type alias Point =
+
+{-| Stores data with an x and a y component. This can be a point in space
+or an interval between two points 
+-}
+type alias Vector =
   { x : Float
   , y : Float
   }
 
+{-| Alias for position vectors -}
+type alias Point = Vector
 
+
+{-|-}
 type Spline =
   Spline { coefficients : Matrix Coefficients
          , start : Point
