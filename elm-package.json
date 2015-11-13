@@ -1,5 +1,5 @@
 {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "summary": "Cubic spline interpolation",
     "repository": "https://github.com/nphollon/interpolate.git",
     "license": "MIT",
@@ -7,7 +7,8 @@
         "src"
     ],
     "exposed-modules": [
-        "Interpolate.Cubic", "Interpolate.Bicubic"
+        "Interpolate.Cubic",
+        "Interpolate.Bicubic"
     ],
     "dependencies": {
         "deadfoxygrandpa/elm-test": "2.0.0 <= v < 3.0.0",
