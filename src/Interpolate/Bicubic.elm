@@ -1,4 +1,4 @@
-module Interpolate.Bicubic (Data, Point, Vector, Spline, LocalSurface
+module Interpolate.Bicubic (Data, Vector, Spline, LocalSurface
                            , rows, emptyData, withRange, withDelta
                            , valueAt, gradientAt, surfaceAt, laplacianAt) where
 
@@ -38,7 +38,7 @@ We could construct a 2D spline this way:
 @docs rows, emptyData, Data
 
 # Creating splines
-@docs withRange, withDelta, Vector, Point, Spline
+@docs withRange, withDelta, Vector, Spline
 
 # Interpolating
 @docs valueAt, gradientAt, laplacianAt, surfaceAt, LocalSurface
@@ -92,7 +92,7 @@ emptyData =
        
            
 {-| Evaluate the spline at the given point -}
-valueAt : Point -> Spline -> Float
+valueAt : Vector -> Spline -> Float
 valueAt =
   evaluate cubic
 
@@ -101,7 +101,7 @@ valueAt =
 of the spline at the given point. The gradient is the x and y
 partial derivatives of the spline.
 -}
-gradientAt : Point -> Spline -> Vector
+gradientAt : Vector -> Spline -> Vector
 gradientAt =
   evaluate del
 
@@ -110,7 +110,7 @@ gradientAt =
 of the spline at the given point. The Laplacian is the divergence
 of the gradient. It is computed by adding the x and y second partial
 derivatives. -}
-laplacianAt : Point -> Spline -> Float
+laplacianAt : Vector -> Spline -> Float
 laplacianAt =
   evaluate delDotDel
 
@@ -118,7 +118,7 @@ laplacianAt =
 {-| Returns `valueAt`, `gradientAt`, and `laplacianAt` results in
 a single record.
 -}
-surfaceAt : Point -> Spline -> LocalSurface
+surfaceAt : Vector -> Spline -> LocalSurface
 surfaceAt =
   evaluate (\pt coeff ->
               { value = cubic pt coeff
@@ -128,7 +128,7 @@ surfaceAt =
            )
 
 
-evaluate : (Point -> Coefficients -> a) -> Point -> Spline -> a
+evaluate : (Vector -> Coefficients -> a) -> Vector -> Spline -> a
 evaluate f point (Spline spline) =
   let
     maxIndex =
@@ -154,14 +154,14 @@ evaluate f point (Spline spline) =
       |> f offset
 
          
-cubic : Point -> Coefficients -> Float
+cubic : Vector -> Coefficients -> Float
 cubic { x, y } =
   addMonomials (\i j factor ->
                   factor * x^i * y^j
                )
 
                  
-del : Point -> Coefficients -> Point
+del : Vector -> Coefficients -> Vector
 del { x, y } coeff =
   let
     dz_dx i j factor =
@@ -177,7 +177,7 @@ del { x, y } coeff =
     }
 
 
-delDotDel : Point -> Coefficients -> Float
+delDotDel : Vector -> Coefficients -> Float
 delDotDel { x, y } coeff =
   let
     d2z_dx2 i j factor =
@@ -203,7 +203,7 @@ addMonomials monomial coeff =
 {-| Construct a spline, given the positions of the lower left (min-x, min-y)
 and upper right (max-x, max-y) data samples, and a data set.
 -}
-withRange : Point -> Point -> Data -> Spline
+withRange : Vector -> Vector -> Data -> Spline
 withRange start end (Data data) =
   let
     deltaFor dim elem =
@@ -230,7 +230,7 @@ withRange start end (Data data) =
 {-| Construct a spline, given the position of the lower left data sample
 and the dimensions of a grid cell.
 -}
-withDelta : Point -> Vector -> Data -> Spline
+withDelta : Vector -> Vector -> Data -> Spline
 withDelta start delta (Data data) =
   { coefficients = findCoefficients delta data
   , start = start
@@ -250,7 +250,7 @@ degenerateCoefficients data =
       |> Matrix.repeat 1 1
 
          
-findCoefficients : Point -> Matrix Float -> Matrix Coefficients
+findCoefficients : Vector -> Matrix Float -> Matrix Coefficients
 findCoefficients delta data =
   findDerivatives data
   |> Maybe.map Matrix.quadCollapse
@@ -299,7 +299,7 @@ slopes n spline =
     |> Array.toList
 
          
-fromDerivatives : Point -> Quad Derivatives -> Coefficients
+fromDerivatives : Vector -> Quad Derivatives -> Coefficients
 fromDerivatives delta d =
   let
     derivsMatrix =
@@ -409,14 +409,10 @@ type alias Vector =
   }
 
                   
-{-| Alias for position vectors. -}
-type alias Point = Vector
-
-
 {-|-}
 type Spline =
   Spline { coefficients : Matrix Coefficients
-         , start : Point
+         , start : Vector
          , delta : Vector
          }
 
