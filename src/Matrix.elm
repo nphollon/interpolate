@@ -20,15 +20,15 @@ fromRows rows =
     isSameWidth row =
       List.length row == headWidth
   in
-    if | headWidth == 0 -> Nothing
-
-       | List.all isSameWidth rows ->
-         { width = headWidth
-         , height = List.length rows
-         , data = addIndex rows
-         } |> Just
-        
-       | otherwise -> Nothing
+    if headWidth == 0 then
+      Nothing
+    else if List.all isSameWidth rows then
+      { width = headWidth
+      , height = List.length rows
+      , data = addIndex rows
+      } |> Just
+    else        
+      Nothing
 
 
 addIndex : List (List a) -> List ((Int, Int), a)
@@ -82,9 +82,12 @@ get : Int -> Int -> Matrix a -> Maybe a
 get x y matrix =
   let
     findItem ((i, j), item) oldResult =
-      if | oldResult /= Nothing -> oldResult
-         | (i == x) && (j == y) -> Just item
-         | otherwise -> Nothing
+      if oldResult /= Nothing then
+        oldResult
+      else if (i == x) && (j == y) then
+        Just item
+      else
+        Nothing
   in
     List.foldl findItem Nothing matrix.data
 
@@ -93,10 +96,12 @@ set : Int -> Int -> a -> Matrix a -> Matrix a
 set x y newItem matrix =
   let
     insert indexedItem =
-      if | (x,y) == fst indexedItem -> ((x,y), newItem)
-         | otherwise -> indexedItem
+      if (x,y) == fst indexedItem then
+        ((x,y), newItem)
+      else
+        indexedItem
   in
-    { matrix | data <- List.map insert matrix.data }
+    { matrix | data = List.map insert matrix.data }
 
     
 quadCollapse : Matrix a -> Matrix (Quad a)
@@ -145,7 +150,7 @@ indexedMap f matrix =
     new ((i, j), value) =
       ((i, j), f i j value)
   in
-    { matrix | data <- List.map new matrix.data }
+    { matrix | data = List.map new matrix.data }
 
 
 map4 : (a -> b -> c -> d -> e) ->
@@ -166,8 +171,10 @@ map4 f m1 m2 m3 m4 =
       dim m1 == dim m3 &&
       dim m1 == dim m4
   in
-    if | sameSize -> Just { m1 | data <- data }
-       | otherwise -> Nothing
+    if sameSize then
+      Just { m1 | data = data }
+    else
+      Nothing
               
 
 rows : Matrix a -> List (List a)
@@ -205,10 +212,10 @@ times a b =
     dotColumns columns row =
       List.map (dotProduct row) columns
   in
-    if | a.width == b.height ->
-         fromRows (List.map (dotColumns bColumns) aRows)
-         
-       | otherwise -> Nothing
+    if a.width == b.height then
+      fromRows (List.map (dotColumns bColumns) aRows)
+    else
+      Nothing
 
 
 transpose : Matrix a -> Matrix a

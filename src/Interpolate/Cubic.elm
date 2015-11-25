@@ -127,14 +127,13 @@ withRange start end heights =
     dx =
       (end - start) / (n - 1)
   in
-    if | 1 < n ->
-         withDelta start dx heights
-
-       | otherwise ->
-         { coefficients = degenerateCoefficients heights
-         , start = 0
-         , dx = 0
-         } |> Spline
+    if 1 < n then
+      withDelta start dx heights
+    else
+      { coefficients = degenerateCoefficients heights
+      , start = 0
+      , dx = 0
+      } |> Spline
 
 
 {-| Same as `withRange`, except instead of passing the endpoint as the

@@ -165,12 +165,16 @@ del : Vector -> Coefficients -> Vector
 del { x, y } coeff =
   let
     dz_dx i j factor =
-      if | (0 < i) -> factor * i * x^(i-1) * y^j
-         | otherwise -> 0
+      if 0 < i then
+        factor * i * x^(i-1) * y^j
+      else
+        0
 
     dz_dy i j factor =
-      if | (0 < j) -> factor * j * x^i * y^(j-1)
-         | otherwise -> 0
+      if 0 < j then
+        factor * j * x^i * y^(j-1)
+      else
+        0
   in
     { x = addMonomials dz_dx coeff
     , y = addMonomials dz_dy coeff
@@ -181,12 +185,16 @@ delDotDel : Vector -> Coefficients -> Float
 delDotDel { x, y } coeff =
   let
     d2z_dx2 i j factor =
-      if | (1 < i) -> factor * i * (i - 1) * x^(i-2) * y^j
-         | otherwise -> 0
+      if 1 < i then
+        factor * i * (i - 1) * x^(i-2) * y^j
+      else
+        0
 
     d2z_dy2 i j factor =
-      if | (1 < j) -> factor * j * (j - 1) * x^i * y^(j-2)
-         | otherwise -> 0
+      if 1 < j then
+        factor * j * (j - 1) * x^i * y^(j-2)
+      else
+        0
 
     derivTotal i j factor =
       (d2z_dx2 i j factor) + (d2z_dy2 i j factor)
@@ -217,14 +225,13 @@ withRange start end (Data data) =
     bigEnough =
       (Matrix.width data > 1) && (Matrix.height data > 1)
   in
-    if | bigEnough ->
-         withDelta start delta (Data data)
-
-       | otherwise ->                   
-         { coefficients = degenerateCoefficients data
-         , start = { x = 0, y = 0 }
-         , delta = { x = 0, y = 0 }
-         } |> Spline
+    if bigEnough then
+      withDelta start delta (Data data)
+    else
+      { coefficients = degenerateCoefficients data
+      , start = { x = 0, y = 0 }
+      , delta = { x = 0, y = 0 }
+      } |> Spline
 
 
 {-| Construct a spline, given the position of the lower left data sample
