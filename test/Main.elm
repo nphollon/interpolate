@@ -1,7 +1,11 @@
-{- -
-  This program will not work in the browser.
-  To run on the command line, execute run-tests.sh
-- -}
+{- 
+  To run the tests:
+  - Add these dependencies to elm-package.json:
+        "deadfoxygrandpa/elm-test": "2.0.0 <= v < 3.0.0"
+        "laszlopandy/elm-console": "1.0.2 <= v < 2.0.0"
+  - run elm package install
+  - execute run-tests.sh
+-}
 
 module Main where
 
